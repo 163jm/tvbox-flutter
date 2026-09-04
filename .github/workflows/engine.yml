@@ -98,7 +98,7 @@ jobs:
         working-directory: packages/tvbox_native
         env:
           TVBOX_QJS_LIB: ${{ github.workspace }}/native/test-lib/libquickjs_bridge.so
-        run: dart test --plain-name "implementationName" --plain-name "evaluate" --plain-name "宿主" --plain-name "module" --plain-name "bytecode" --plain-name "Promise" --plain-name "异常" --plain-name "stringify" --plain-name "runGC" --plain-name "dispose"
+        run: dart test test/conformance_quickjs_test.dart
 
       - name: Commit test logs
         if: failure()
