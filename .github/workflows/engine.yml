@@ -70,6 +70,11 @@ jobs:
           QUICKJS_REF="${{ inputs.quickjs_ref || 'v0.15.1' }}" \
             ./native/scripts/build_engine.sh native/test-lib
 
+      - name: Pub get
+        run: |
+          dart pub get --directory packages/tvbox_core
+          dart pub get --directory packages/tvbox_native
+
       - name: Dart analyze
         run: |
           dart analyze packages/tvbox_core
