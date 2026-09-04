@@ -213,7 +213,8 @@ QJS_API void qjs_make_int32(JSContext *ctx, JSValue *out, int32_t n) {
 }
 QJS_API void qjs_make_float64(JSContext *ctx, JSValue *out, double d) {
   (void)ctx;
-  *out = __JS_NewFloat64(ctx, d);
+  (void)ctx;
+  *out = __JS_NewFloat64(d);
 }
 
 QJS_API int32_t qjs_get_tag(JSValue *v) { return (int32_t)JS_VALUE_GET_TAG(*v); }
@@ -372,8 +373,10 @@ QJS_API int32_t qjs_call(JSContext *ctx, JSValue *func, JSValue *this_obj,
 /* ---------- 宿主函数注册 ---------- */
 
 static JSValue host_trampoline(JSContext *ctx, JSValueConst this_val,
-                               int argc, JSValueConst *argv, int magic) {
+                               int argc, JSValueConst *argv, int magic,
+                               JSValue *func_data) {
   (void)this_val;
+  (void)func_data;
   JSValue ret = JS_UNDEFINED;
   if (g_host_call) {
     g_host_call((int32_t)magic, ctx, (int32_t)argc, argv, &ret);
@@ -411,8 +414,8 @@ QJS_API int32_t qjs_throw_error(JSContext *ctx, const char *msg) {
 /* 异常处理 */
 QJS_API int32_t qjs_is_exception(JSValue *v) { return JS_IsException(*v); }
 
-QJS_API int32_t qjs_is_error(JSContext *ctx, JSValue *v) {
-  return JS_IsError(ctx, *v) ? 1 : 0;
+QJS_API int32_t qjs_is_error(JSValue *v) {
+  return JS_IsError(*v) ? 1 : 0;
 }
 
 QJS_API int32_t qjs_get_exception(JSContext *ctx, JSValue *out) {

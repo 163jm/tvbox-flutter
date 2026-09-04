@@ -13,3 +13,4 @@ native/build/
 # IDE
 .idea/
 .vscode/
+build-log.txt
