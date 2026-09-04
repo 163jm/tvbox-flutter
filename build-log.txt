@@ -1,5 +1,5 @@
 == [1/4] clone quickjs 上游（repo=https://github.com/quickjs-ng/quickjs.git ref=v0.15.1）==
-Cloning into '/tmp/tmp.yUCo8xs055/quickjs'...
+Cloning into '/tmp/tmp.M3PwKptIaf/quickjs'...
 Note: switching to 'fd0a0210b7be00957751871e7e01b8291268fc29'.
 
 You are in 'detached HEAD' state. You can look around, make experimental
@@ -67,9 +67,9 @@ Turn off this advice by setting config variable advice.detachedHead to false
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
 -- Found Threads: TRUE
--- Configuring done (1.1s)
+-- Configuring done (1.7s)
 -- Generating done (0.0s)
--- Build files have been written to: /tmp/tmp.yUCo8xs055/quickjs/build
+-- Build files have been written to: /tmp/tmp.M3PwKptIaf/quickjs/build
 [ 20%] Building C object CMakeFiles/qjs.dir/dtoa.c.o
 [ 40%] Building C object CMakeFiles/qjs.dir/libregexp.c.o
 [ 60%] Building C object CMakeFiles/qjs.dir/libunicode.c.o
@@ -81,4 +81,44 @@ Turn off this advice by setting config variable advice.detachedHead to false
 [100%] Linking C static library libqjs-libc.a
 [100%] Built target qjs-libc
 == [3/4] 编译并链接 bridge shim ==
-./native/scripts/build_engine.sh: line 49: CC: unbound variable
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c: In function ‘qjs_make_float64’:
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c:216:26: error: incompatible type for argument 1 of ‘__JS_NewFloat64’
+  216 |   *out = __JS_NewFloat64(ctx, d);
+      |                          ^~~
+      |                          |
+      |                          JSContext *
+In file included from ./quickjs-libc.h:32,
+                 from /home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c:15:
+./quickjs.h:355:46: note: expected ‘double’ but argument is of type ‘JSContext *’
+  355 | static inline JSValue __JS_NewFloat64(double d)
+      |                                       ~~~~~~~^
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c:216:10: error: too many arguments to function ‘__JS_NewFloat64’
+  216 |   *out = __JS_NewFloat64(ctx, d);
+      |          ^~~~~~~~~~~~~~~
+./quickjs.h:355:23: note: declared here
+  355 | static inline JSValue __JS_NewFloat64(double d)
+      |                       ^~~~~~~~~~~~~~~
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c: In function ‘qjs_new_host_function’:
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c:387:35: warning: passing argument 2 of ‘JS_NewCFunctionData’ from incompatible pointer type [-Wincompatible-pointer-types]
+  387 |   *out = JS_NewCFunctionData(ctx, host_trampoline, 0, (int)function_id, 0,
+      |                                   ^~~~~~~~~~~~~~~
+      |                                   |
+      |                                   JSValue (*)(JSContext *, JSValue,  int,  JSValue *, int)
+./quickjs.h:1290:72: note: expected ‘JSValue (*)(JSContext *, JSValue,  int,  JSValue *, int,  JSValue *)’ but argument is of type ‘JSValue (*)(JSContext *, JSValue,  int,  JSValue *, int)’
+ 1290 | JS_EXTERN JSValue JS_NewCFunctionData(JSContext *ctx, JSCFunctionData *func,
+      |                                                       ~~~~~~~~~~~~~~~~~^~~~
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c: In function ‘qjs_is_error’:
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c:415:21: error: incompatible type for argument 1 of ‘JS_IsError’
+  415 |   return JS_IsError(ctx, *v) ? 1 : 0;
+      |                     ^~~
+      |                     |
+      |                     JSContext *
+./quickjs.h:820:40: note: expected ‘JSValue’ but argument is of type ‘JSContext *’
+  820 | JS_EXTERN bool JS_IsError(JSValueConst val);
+      |                                        ^
+/home/runner/work/tvbox-flutter/tvbox-flutter/native/scripts/../bridge/quickjs_bridge.c:415:10: error: too many arguments to function ‘JS_IsError’
+  415 |   return JS_IsError(ctx, *v) ? 1 : 0;
+      |          ^~~~~~~~~~
+./quickjs.h:820:16: note: declared here
+  820 | JS_EXTERN bool JS_IsError(JSValueConst val);
+      |                ^~~~~~~~~~
