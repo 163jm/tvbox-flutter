@@ -29,6 +29,12 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+# OUT_DIR 必须先解析成绝对路径：脚本后面会 cd 进临时源码目录，
+# 届时相对路径的 OUT_DIR 会落到临时目录里，随 trap 一起被删掉
+# （表现为 conformance 报“动态库不存在”）。
+mkdir -p "$OUT_DIR"
+OUT_DIR="$(cd "$OUT_DIR" && pwd)"
+
 if [ "$QUICKJS_REF" != "$EXPECTED_TAG" ]; then
   echo "警告：ref=$QUICKJS_REF 与参考实现版本（$EXPECTED_TAG）不同，" >&2
   echo "预编译 bytecode（//bb 与 //DRPY）可能无法加载！" >&2
