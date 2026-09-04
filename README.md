@@ -40,15 +40,29 @@ apps/mobile/            移动端（暂未创建）
 
 ## QuickJS 引擎层
 
-- `native/quickjs_bridge.c`：稳定 ABI 层。所有 JSValue 走堆指针，Dart 回调全部
+- `native/bridge/quickjs_bridge.c`：稳定 ABI 层。所有 JSValue 走堆指针，Dart 回调全部
   void 签名（返回值经输出参数写回），宿主函数的 Dart 异常转成 JS Error。
 - `packages/tvbox_native/lib/src/quickjs/`：FFI 绑定 + `QuickjsEngine`
   （实现 `JsEngine`），支持 evaluate / module / bytecode / 宿主函数注册 /
   模块加载器（bytecode 优先，源码现编译）。
-- 验证方式：`native/build_bridge.sh` 编出动态库后
-  `TVBOX_QJS_LIB=<so/dll> dart test --directory packages/tvbox_native`
-  会跑完整 conformance 套件；CI（`.github/workflows/engine.yml`）
-  在 ubuntu/windows 上自动编译并执行。
+
+### 构建与验证（quickjs 源码不进本仓库）
+
+quickjs 上游源码由构建脚本临时 clone（版本硬校验 `VERSION == 2026-06-04`，
+与参考实现同源，否则生态里的预编译 bytecode 无法加载），编译产物
+提交回 `native/prebuilt/<platform>/`：
+
+```bash
+# 构建（本机或 CI）
+QUICKJS_REF=main ./native/scripts/build_engine.sh native/prebuilt/linux-x86_64
+
+# 用产物跑 conformance
+TVBOX_QJS_LIB=native/prebuilt/linux-x86_64/libquickjs_bridge.so \
+  dart test --directory packages/tvbox_native
+```
+
+CI（`.github/workflows/engine.yml`）：build job 编译 + 提交产物 +
+上传 artifact；test job 用产物跑 curl 真实网络测试 + QuickJS conformance。
 
 ## 开发
 

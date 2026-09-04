@@ -1,0 +1,15 @@
+# Dart
+.dart_tool/
+.packages
+pubspec.lock
+
+# Flutter / 平台工程（apps/ 由 flutter create 生成后按需提交）
+build/
+
+# 构建临时目录
+native/artifacts/
+native/build/
+
+# IDE
+.idea/
+.vscode/

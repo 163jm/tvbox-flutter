@@ -1,22 +1,61 @@
-name: engine-tests
+name: engine
 
-# QuickJS 引擎层验证：编译 quickjs-ng + bridge → 跑 conformance 测试。
-# 本机受安全策略限制无法产出动态库的开发者依赖此 workflow 做运行时验证。
-#
-# 前置：quickjs-ng 源码放在仓库 native/third_party/quickjs/
-# （必须与参考实现 quickjs-master 同版本，2026-06-04，bytecode 兼容）。
+# quickjs 引擎构建与验证。源码不进仓库：
+# CI 临时 clone quickjs 上游（版本硬校验 2026-06-04）→ 编译 →
+# 产物提交到 native/prebuilt/ → 用产物跑 conformance 测试。
 on:
   push:
     paths:
+      - 'native/**'
       - 'packages/tvbox_native/**'
       - 'packages/tvbox_core/**'
-      - 'native/**'
       - '.github/workflows/engine.yml'
   pull_request:
   workflow_dispatch:
+    inputs:
+      quickjs_ref:
+        description: 'quickjs 上游 ref（tag/branch）'
+        default: 'main'
+
+permissions:
+  contents: write
+
+env:
+  QUICKJS_VERSION: '2026-06-04'
 
 jobs:
-  linux:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build engine library
+        run: |
+          chmod +x native/scripts/build_engine.sh
+          QUICKJS_REF="${{ inputs.quickjs_ref || 'main' }}" \
+            ./native/scripts/build_engine.sh native/prebuilt/linux-x86_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libquickjs_bridge-linux-x86_64
+          path: native/prebuilt/linux-x86_64/libquickjs_bridge.so
+          if-no-files-found: error
+
+      - name: Commit prebuilt into repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add native/prebuilt
+          if git diff --cached --quiet; then
+            echo "产物无变化，跳过提交"
+          else
+            git commit -m "build: libquickjs_bridge.so (quickjs $QUICKJS_VERSION)"
+            git push
+          fi
+
+  test:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,10 +65,11 @@ jobs:
         with:
           sdk: stable
 
-      - name: Build quickjs_bridge
-        run: |
-          chmod +x native/build_bridge.sh
-          ./native/build_bridge.sh native/third_party/quickjs native/artifacts
+      - name: Download engine library
+        uses: actions/download-artifact@v4
+        with:
+          name: libquickjs_bridge-linux-x86_64
+          path: engine-lib
 
       - name: Dart analyze
         run: |
@@ -39,37 +79,7 @@ jobs:
       - name: Core unit tests
         run: dart test --directory packages/tvbox_core
 
-      - name: Native tests (curl + quickjs conformance)
+      - name: Native tests（libcurl 真实网络 + QuickJS conformance）
         env:
-          TVBOX_QJS_LIB: ${{ github.workspace }}/native/artifacts/build/libquickjs_bridge.so
+          TVBOX_QJS_LIB: ${{ github.workspace }}/engine-lib/libquickjs_bridge.so
         run: dart test --directory packages/tvbox_native
-
-  windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Dart SDK
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
-      - name: Build quickjs_bridge (MSVC)
-        shell: pwsh
-        run: |
-          cmake -S native/third_party/quickjs -B native/third_party/quickjs/build `
-            -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_QJS_EXE=OFF -DBUILD_QJS_LIBC=ON
-          cmake --build native/third_party/quickjs/build --config Release
-
-          New-Item -ItemType Directory -Force native/artifacts/build | Out-Null
-          cl /O2 /LD /I native/third_party/quickjs `
-            native/quickjs_bridge.c `
-            native/third_party/quickjs/quickjs-libc.c `
-            /Fe:native/artifacts/build/quickjs_bridge.dll `
-            /link native/third_party/quickjs/build/Release/libquickjs.lib `
-            WS2_32.lib
-
-      - name: Native tests (quickjs conformance)
-        env:
-          TVBOX_QJS_LIB: ${{ github.workspace }}/native/artifacts/build/quickjs_bridge.dll
-        run: dart test --directory packages/tvbox_native --plain-name "QuickJS"
