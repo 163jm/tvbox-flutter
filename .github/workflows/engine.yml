@@ -14,8 +14,8 @@ on:
   workflow_dispatch:
     inputs:
       quickjs_ref:
-        description: 'quickjs 上游 ref（tag/branch）'
-        default: 'main'
+        description: 'quickjs 上游 ref（默认 v0.15.1 = 2026-06-04）'
+        default: 'v0.15.1'
 
 permissions:
   contents: write
@@ -32,7 +32,7 @@ jobs:
       - name: Build engine library
         run: |
           chmod +x native/scripts/build_engine.sh
-          QUICKJS_REF="${{ inputs.quickjs_ref || 'main' }}" \
+          QUICKJS_REF="${{ inputs.quickjs_ref || 'v0.15.1' }}" \
             ./native/scripts/build_engine.sh native/prebuilt/linux-x86_64
 
       - name: Upload artifact
