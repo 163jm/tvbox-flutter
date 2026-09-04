@@ -40,7 +40,10 @@ cd "$WORK/quickjs"
 echo "    commit: $(git rev-parse --short HEAD)"
 
 echo "== [2/4] CMake 配置与编译（qjs + qjs-libc）=="
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+# PIC 必开：产物要链进 -shared 的 bridge 动态库，非 PIC 静态库会
+# 报 "relocation R_X86_64_PC32 ... recompile with -fPIC"
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 cmake --build build --target qjs qjs-libc -j "$(nproc 2>/dev/null || echo 4)"
 
 echo "== [3/4] 编译并链接 bridge shim =="
