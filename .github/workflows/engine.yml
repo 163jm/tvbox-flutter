@@ -1,8 +1,8 @@
 name: engine
 
 # quickjs 引擎构建与验证。源码不进仓库：
-# CI 临时 clone quickjs 上游（版本硬校验 2026-06-04）→ 编译 →
-# 产物提交到 native/prebuilt/ → 用产物跑 conformance 测试。
+# CI 临时 clone quickjs 上游（tag v0.15.1 = 2026-06-04，与参考实现同源）→
+# 编译 → 产物提交回 native/prebuilt/ → test job 重新构建并跑 conformance。
 on:
   push:
     paths:
@@ -20,9 +20,6 @@ on:
 permissions:
   contents: write
 
-env:
-  QUICKJS_VERSION: '2026-06-04'
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,41 +33,16 @@ jobs:
           QUICKJS_REF="${{ inputs.quickjs_ref || 'v0.15.1' }}" \
             ./native/scripts/build_engine.sh native/prebuilt/linux-x86_64 2>&1 | tee build-log.txt
 
-      - name: Commit log (debug visibility)
+      - name: Commit prebuilt + log into repo
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f build-log.txt
-          if git diff --cached --quiet; then
-            echo "日志无变化"
-          else
-            git commit -m "ci: build log [skip ci]"
-            git push
-          fi
-
-      - name: Verify artifact
-        run: |
-          ls -laR native/prebuilt/ || true
-          file native/prebuilt/linux-x86_64/libquickjs_bridge.so || true
-          test -s native/prebuilt/linux-x86_64/libquickjs_bridge.so
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libquickjs_bridge-linux-x86_64
-          path: native/prebuilt/linux-x86_64/
-          if-no-files-found: error
-
-      - name: Commit prebuilt into repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add native/prebuilt
+          git add -f native/prebuilt build-log.txt
           if git diff --cached --quiet; then
             echo "产物无变化，跳过提交"
           else
-            git commit -m "build: libquickjs_bridge.so (quickjs $QUICKJS_VERSION)"
+            git commit -m "build: prebuilt libquickjs_bridge.so [skip ci]"
             git push
           fi
 
@@ -85,11 +57,11 @@ jobs:
         with:
           sdk: stable
 
-      - name: Download engine library
-        uses: actions/download-artifact@v4
-        with:
-          name: libquickjs_bridge-linux-x86_64
-          path: engine-lib
+      - name: Build engine library (self-contained)
+        run: |
+          chmod +x native/scripts/build_engine.sh
+          QUICKJS_REF="${{ inputs.quickjs_ref || 'v0.15.1' }}" \
+            ./native/scripts/build_engine.sh native/test-lib
 
       - name: Dart analyze
         run: |
@@ -101,5 +73,5 @@ jobs:
 
       - name: Native tests（libcurl 真实网络 + QuickJS conformance）
         env:
-          TVBOX_QJS_LIB: ${{ github.workspace }}/engine-lib/libquickjs_bridge.so
+          TVBOX_QJS_LIB: ${{ github.workspace }}/native/test-lib/libquickjs_bridge.so
         run: dart test --directory packages/tvbox_native
