@@ -81,9 +81,27 @@ jobs:
           dart analyze packages/tvbox_native
 
       - name: Core unit tests
-        run: dart test --directory packages/tvbox_core
+        run: |
+          set -o pipefail
+          dart test --directory packages/tvbox_core 2>&1 | tee core-test-log.txt
 
       - name: Native tests（libcurl 真实网络 + QuickJS conformance）
         env:
           TVBOX_QJS_LIB: ${{ github.workspace }}/native/test-lib/libquickjs_bridge.so
-        run: dart test --directory packages/tvbox_native
+        run: |
+          set -o pipefail
+          dart test --directory packages/tvbox_native 2>&1 | tee native-test-log.txt
+
+      - name: Commit test logs
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f core-test-log.txt native-test-log.txt 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "无日志可提交"
+            exit 0
+          fi
+          git commit -m "ci: test logs [skip ci]"
+          git pull --rebase origin master || true
+          git push origin HEAD:master
