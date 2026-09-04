@@ -90,11 +90,11 @@ jobs:
         working-directory: packages/tvbox_core
         run: dart test
 
-      - name: Native: curl network tests
+      - name: "Native - curl network tests"
         working-directory: packages/tvbox_native
         run: dart test --plain-name "CurlSyncHttpClient"
 
-      - name: Native: quickjs conformance
+      - name: "Native - quickjs conformance"
         working-directory: packages/tvbox_native
         env:
           TVBOX_QJS_LIB: ${{ github.workspace }}/native/test-lib/libquickjs_bridge.so
