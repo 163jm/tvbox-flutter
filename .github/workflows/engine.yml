@@ -88,17 +88,17 @@ jobs:
 
       - name: Core unit tests
         working-directory: packages/tvbox_core
-        run: |
-          set -o pipefail
-          dart test 2>&1 | tee core-test-log.txt
+        run: dart test
 
-      - name: Native tests（libcurl 真实网络 + QuickJS conformance）
+      - name: Native: curl network tests
+        working-directory: packages/tvbox_native
+        run: dart test --plain-name "CurlSyncHttpClient"
+
+      - name: Native: quickjs conformance
         working-directory: packages/tvbox_native
         env:
           TVBOX_QJS_LIB: ${{ github.workspace }}/native/test-lib/libquickjs_bridge.so
-        run: |
-          set -o pipefail
-          dart test 2>&1 | tee native-test-log.txt
+        run: dart test --plain-name "implementationName" --plain-name "evaluate" --plain-name "宿主" --plain-name "module" --plain-name "bytecode" --plain-name "Promise" --plain-name "异常" --plain-name "stringify" --plain-name "runGC" --plain-name "dispose"
 
       - name: Commit test logs
         if: failure()
@@ -113,7 +113,9 @@ jobs:
           fi
           git commit -m "ci: test logs [skip ci]"
           for i in 1 2 3; do
-            git pull --rebase origin master && git push origin HEAD:master && break
+            git fetch origin
+            git rebase origin/master && git push origin HEAD:master && break
             echo "push 重试 $i"
             sleep 5
           done
+          git log --oneline -2

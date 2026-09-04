@@ -1,5 +1,5 @@
 == [1/4] clone quickjs 上游（repo=https://github.com/quickjs-ng/quickjs.git ref=v0.15.1）==
-Cloning into '/tmp/tmp.pV2t3E6jt4/quickjs'...
+Cloning into '/tmp/tmp.ZgJTshai3m/quickjs'...
 Note: switching to 'fd0a0210b7be00957751871e7e01b8291268fc29'.
 
 You are in 'detached HEAD' state. You can look around, make experimental
@@ -67,12 +67,12 @@ Turn off this advice by setting config variable advice.detachedHead to false
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
 -- Found Threads: TRUE
--- Configuring done (1.0s)
+-- Configuring done (1.5s)
 -- Generating done (0.0s)
--- Build files have been written to: /tmp/tmp.pV2t3E6jt4/quickjs/build
+-- Build files have been written to: /tmp/tmp.ZgJTshai3m/quickjs/build
 [ 20%] Building C object CMakeFiles/qjs.dir/dtoa.c.o
 [ 40%] Building C object CMakeFiles/qjs.dir/libregexp.c.o
-[ 60%] Building C object CMakeFiles/qjs.dir/quickjs.c.o
+[ 80%] Building C object CMakeFiles/qjs.dir/quickjs.c.o
 [ 80%] Building C object CMakeFiles/qjs.dir/libunicode.c.o
 [100%] Linking C static library libqjs.a
 [100%] Built target qjs
@@ -82,7 +82,7 @@ Turn off this advice by setting config variable advice.detachedHead to false
 [100%] Built target qjs-libc
 == [3/4] 编译并链接 bridge shim ==
 == [4/4] 产物 ==
--rwxr-xr-x 1 runner runner 1304144 Sep  4 10:33 native/prebuilt/linux-x86_64/libquickjs_bridge.so
+-rwxr-xr-x 1 runner runner 1304144 Sep  4 10:29 native/prebuilt/linux-x86_64/libquickjs_bridge.so
 
 构建完成: native/prebuilt/linux-x86_64/libquickjs_bridge.so
 本机验证:

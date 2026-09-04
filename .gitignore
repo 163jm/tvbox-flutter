@@ -16,3 +16,5 @@ native/build/
 build-log.txt
 core-test-log.txt
 native-test-log.txt
+core-test-log.txt
+native-test-log.txt
