@@ -1,0 +1,18 @@
+name: tvbox_core
+description: >-
+  TVBox 跨平台核心层：爬虫运行时、JS 宿主能力、数据模型与平台抽象。
+  纯 Dart 实现，不含任何 Flutter 或平台专属依赖。
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+# 刻意保持零运行时依赖。
+# 绑定实现（dart:ffi / flutter_qjs_next）、播放器、存储等全部由 app 层
+# 通过 PlatformBridge、JsEngineFactory 注入，core 只定义契约。
+dependencies:
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

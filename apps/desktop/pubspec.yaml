@@ -1,0 +1,40 @@
+name: tvbox_desktop
+description: TVBox 桌面端（Windows / Linux / macOS）。
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  tvbox_core:
+    path: ../../packages/tvbox_core
+  tvbox_native:
+    path: ../../packages/tvbox_native
+
+  # 播放器：全平台统一走 libmpv。
+  # media_kit_libs_video 是 meta 包，会按目标平台自动引入
+  # media_kit_libs_{windows,linux,macos}_video，因此只需要声明这一个。
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
+
+  # 本地代理服务，供 getProxy / js2Proxy 使用
+  shelf: ^1.4.1
+
+  # 存储
+  shared_preferences: ^2.3.0
+
+  # 应用数据目录
+  path_provider: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

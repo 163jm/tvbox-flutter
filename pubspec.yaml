@@ -1,0 +1,13 @@
+name: _flutter_tvbox_workspace
+description: Flutter TVBox 工作区根，用 pub workspaces 统一解析依赖。
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+workspace:
+  - packages/tvbox_core
+  - packages/tvbox_native
+  - apps/desktop
+
