@@ -31,9 +31,23 @@ jobs:
 
       - name: Build engine library
         run: |
+          set -o pipefail
           chmod +x native/scripts/build_engine.sh
           QUICKJS_REF="${{ inputs.quickjs_ref || 'v0.15.1' }}" \
-            ./native/scripts/build_engine.sh native/prebuilt/linux-x86_64
+            ./native/scripts/build_engine.sh native/prebuilt/linux-x86_64 2>&1 | tee build-log.txt
+
+      - name: Commit log (debug visibility)
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f build-log.txt
+          if git diff --cached --quiet; then
+            echo "日志无变化"
+          else
+            git commit -m "ci: build log [skip ci]"
+            git push
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
