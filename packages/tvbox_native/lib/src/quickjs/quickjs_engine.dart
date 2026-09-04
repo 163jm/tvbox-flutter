@@ -362,7 +362,6 @@ class QuickjsEngine implements JsEngine {
         }
         final result = _jsToDart(out);
         _bridge.freeValue(_ctxPointer, out);
-        _bridge.freeSlot(out);
         _drainJobs();
         return result;
       } finally {
@@ -388,7 +387,6 @@ class QuickjsEngine implements JsEngine {
       }
       final result = _jsToDart(out);
       _bridge.freeValue(_ctxPointer, out);
-      _bridge.freeSlot(out);
       return result;
     } finally {
       malloc.free(ptr);
@@ -593,12 +591,22 @@ class QuickjsEngine implements JsEngine {
   }
 
   Object? _objectToDart(Pointer<QjsValue> slot) {
-    // 数组？
-    final lenPtr = malloc<Uint32>();
+    // 数组？判定依据：`length` 属性存在且是 JS number（int tag）。
+    // 不能只看 JS_ToInt32 的返回值——它对 undefined 返回 0 而不报错，
+    // 会把普通对象误判成空数组。
+    final lenSlot = _newSlot();
     try {
-      if (_bridge.arrayLength(_ctxPointer, slot, lenPtr) == 0) {
+      final namePtr = 'length'.toNativeUtf8();
+      try {
+        _bridge.getProp(_ctxPointer, slot, namePtr, lenSlot);
+      } finally {
+        malloc.free(namePtr);
+      }
+      final isRealArray = _bridge.getTag(lenSlot) == QjsTag.int_;
+      if (isRealArray) {
+        final n = lenSlot.ref.u.u64;
         final list = <Object?>[];
-        for (var i = 0; i < lenPtr.value; i++) {
+        for (var i = 0; i < n; i++) {
           final item = _newSlot();
           try {
             _bridge.getPropU32(_ctxPointer, slot, i, item);
@@ -611,7 +619,8 @@ class QuickjsEngine implements JsEngine {
         return list;
       }
     } finally {
-      malloc.free(lenPtr);
+      _bridge.freeValue(_ctxPointer, lenSlot);
+      _bridge.freeSlot(lenSlot);
     }
 
     // 函数？
@@ -624,37 +633,82 @@ class QuickjsEngine implements JsEngine {
       return ref;
     }
 
-    // 普通对象 → Map
-    final namesPtr = malloc<Pointer<Pointer<Utf8>>>();
-    final countPtr = malloc<Uint32>();
-    try {
-      final rc = _bridge.ownPropertyNames(_ctxPointer, slot, namesPtr, countPtr);
-      if (rc != 0) return null;
-      final names = namesPtr.value;
-      final count = countPtr.value;
-      final map = <String, Object?>{};
-      for (var i = 0; i < count; i++) {
-        final name = names[i].toDartString();
-        final value = _newSlot();
+    // 普通对象 → Map。
+    // 属性名枚举用 JS 的 Object.keys 实现：把对象临时挂到全局，
+    // evaluate 取回 key 列表——比 C 端 JS_GetOwnPropertyNames 更稳。
+    final tmpName = '__qjs_keys_target__';
+    final keysJson = _withGlobalTemp(slot, tmpName, () {
+      final r = evaluate(
+        'JSON.stringify(Object.getOwnPropertyNames(globalThis.$tmpName))',
+        fileName: 'qjs_keys.js',
+      );
+      return r is String ? r : null;
+    });
+    if (keysJson == null) return null;
+    final names = (jsonDecode(keysJson) as List).cast<String>();
+
+    final map = <String, Object?>{};
+    for (final name in names) {
+      final value = _newSlot();
+      try {
+        final namePtr = name.toNativeUtf8();
         try {
-          final namePtr = name.toNativeUtf8();
-          try {
-            _bridge.getProp(_ctxPointer, slot, namePtr, value);
-          } finally {
-            malloc.free(namePtr);
-          }
-          map[name] = _jsToDart(value);
+          _bridge.getProp(_ctxPointer, slot, namePtr, value);
         } finally {
-          _bridge.freeValue(_ctxPointer, value);
-          _bridge.freeSlot(value);
+          malloc.free(namePtr);
         }
+        map[name] = _jsToDart(value);
+      } finally {
+        _bridge.freeValue(_ctxPointer, value);
+        _bridge.freeSlot(value);
       }
-      _bridge.freeStringArray(names, count);
-      return map;
+    }
+    return map;
+  }
+
+  /// 把 [objSlot]（会 dup）临时挂到全局对象 [globalName] 下，
+  /// 执行 [action]，最后清理。
+  T? _withGlobalTemp<T>(
+    Pointer<QjsValue> objSlot,
+    String globalName,
+    T? Function() action,
+  ) {
+    final global = _newSlot();
+    final dupSlot = _newSlot();
+    try {
+      _bridge.getGlobal(_ctxPointer, global);
+      _bridge.dupValue(_ctxPointer, objSlot);
+      _bridge.valueMove(dupSlot, objSlot);
+      final namePtr = globalName.toNativeUtf8();
+      try {
+        if (_bridge.setProp(_ctxPointer, global, namePtr, dupSlot) != 0) {
+          return null;
+        }
+      } finally {
+        malloc.free(namePtr);
+      }
+      return action();
     } finally {
-      malloc
-        ..free(namesPtr)
-        ..free(countPtr);
+      // 删除临时全局属性
+      final delName = globalName.toNativeUtf8();
+      final delScript = 'delete globalThis.$globalName';
+      final delPtr = delScript.toNativeUtf8();
+      final fileNamePtr = 'cleanup.js'.toNativeUtf8();
+      final out = _newSlot();
+      try {
+        _bridge.eval(_ctxPointer, delPtr, delScript.length, fileNamePtr,
+            QjsEvalFlags.global, out);
+        _bridge.freeValue(_ctxPointer, out);
+      } finally {
+        malloc
+          ..free(delName)
+          ..free(delPtr)
+          ..free(fileNamePtr);
+        _bridge.freeSlot(out);
+      }
+      _bridge.freeValue(_ctxPointer, global);
+      _bridge.freeSlot(global);
+      _bridge.freeSlot(dupSlot);
     }
   }
 
@@ -735,7 +789,6 @@ class QuickjsEngine implements JsEngine {
       _bridge.getException(_ctxPointer, exc);
       final msg = _readCString(exc) ?? 'JS exception';
       _bridge.freeValue(_ctxPointer, exc);
-      _bridge.freeSlot(exc);
       return msg;
     } finally {
       _bridge.freeSlot(exc);

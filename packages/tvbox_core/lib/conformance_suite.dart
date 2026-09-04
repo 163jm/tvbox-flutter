@@ -57,23 +57,23 @@ void runJsConformanceSuite(JsEngineFactory factory) {
       'dep.js': 'export const value = 7;\n'
           'export function double(x) { return x * 2; }',
     }));
-    // module eval 返回 namespace 对象，default 导出在 ['default'] 下
-    final r = engine.evaluateModule(
+    // 对齐原版 JsSpider 用法：模块通过副作用把结果写到 globalThis
+    engine.evaluateModule(
       "import { value, double } from 'dep.js';\n"
-      'export default value + double(3);',
+      'globalThis.__result = value + double(3);',
       fileName: 'main.js',
-    ) as Map;
-    expect(r['default'], 13);
+    );
+    expect(engine.getGlobalProperty('__result'), 13);
   });
 
   test('bytecode 编译与执行往返', () {
     final bytecode = engine.compileModule(
-      'export default 6 * 7;',
+      'globalThis.__bc = 6 * 7;',
       fileName: 'answer.js',
     );
     expect(bytecode, isA<Uint8List>());
-    final ns = engine.executeBytecode(bytecode, fileName: 'answer.js') as Map;
-    expect(ns['default'], 42);
+    engine.executeBytecode(bytecode, fileName: 'answer.js');
+    expect(engine.getGlobalProperty('__bc'), 42);
   });
 
   test('bytecode 加载器优先于源码', () {
@@ -82,11 +82,11 @@ void runJsConformanceSuite(JsEngineFactory factory) {
       fileName: 'both.js',
     ));
     engine.setModuleLoader(PriorityModuleLoader());
-    final ns = engine.evaluateModule(
-      "import { v } from 'both.js';\nexport default v;",
+    engine.evaluateModule(
+      "import { v } from 'both.js';\nglobalThis.__v = v;",
       fileName: 'main.js',
-    ) as Map;
-    expect(ns['default'], 1); // bytecode 里的值，而不是源码里的 2
+    );
+    expect(engine.getGlobalProperty('__v'), 1); // bytecode 里的值，而不是源码里的 2
   });
 
   test('Promise 需要排空微任务', () {
@@ -94,11 +94,9 @@ void runJsConformanceSuite(JsEngineFactory factory) {
       'globalThis.__done = false;\n'
       'Promise.resolve().then(() => { globalThis.__done = true; });',
     );
-    var drained = false;
-    for (var i = 0; i < 10 && !drained; i++) {
-      drained = !engine.executePendingJobs();
-    }
-    expect(drained, isTrue, reason: 'executePendingJobs 返回 true 表示队列已空');
+    // executePendingJobs 排空后返回 true（队列已空）
+    final drained = engine.executePendingJobs();
+    expect(drained, isTrue, reason: '排空后应返回 true');
     expect(engine.getGlobalProperty('__done'), true);
   });
 
