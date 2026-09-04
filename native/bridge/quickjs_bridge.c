@@ -320,6 +320,15 @@ QJS_API int32_t qjs_get_prop_u32(JSContext *ctx, JSValue *obj, uint32_t idx,
   return JS_IsException(*out) ? -1 : 0;
 }
 
+/* val 移交给数组元素（引擎接管引用） */
+QJS_API int32_t qjs_set_prop_u32(JSContext *ctx, JSValue *obj, uint32_t idx,
+                                 JSValue *val) {
+  int rc = JS_SetPropertyUint32(ctx, *obj, idx, *val);
+  val->u.ptr = NULL;
+  val->tag = JS_TAG_UNDEFINED;
+  return rc < 0 ? -1 : 0;
+}
+
 QJS_API int32_t qjs_array_length(JSContext *ctx, JSValue *obj,
                                  uint32_t *out) {
   JSValue len_val = JS_GetPropertyStr(ctx, *obj, "length");
