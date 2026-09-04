@@ -44,6 +44,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target qjs qjs-libc -j "$(nproc 2>/dev/null || echo 4)"
 
 echo "== [3/4] 编译并链接 bridge shim =="
+CC="${CC:-cc}"
 mkdir -p "$OUT_DIR"
 SO_NAME="libquickjs_bridge.so"
 "$CC" -O2 -fPIC -shared \
