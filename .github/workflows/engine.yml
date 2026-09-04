@@ -38,13 +38,20 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f native/prebuilt build-log.txt
+          git add -f build-log.txt || true
+          git add -f native/prebuilt 2>/dev/null || true
+          git status --short
           if git diff --cached --quiet; then
             echo "产物无变化，跳过提交"
-          else
-            git commit -m "build: prebuilt libquickjs_bridge.so [skip ci]"
-            git push
+            exit 0
           fi
+          git commit -m "build: prebuilt libquickjs_bridge.so [skip ci]"
+          git pull --rebase origin master || true
+          git push origin HEAD:master || {
+            echo "push 失败，重试一次（rebase 后）"
+            git pull --rebase origin master || true
+            git push origin HEAD:master
+          }
 
   test:
     needs: build
