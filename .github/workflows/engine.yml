@@ -71,26 +71,34 @@ jobs:
             ./native/scripts/build_engine.sh native/test-lib
 
       - name: Pub get
-        run: |
-          dart pub get --directory packages/tvbox_core
-          dart pub get --directory packages/tvbox_native
+        run: dart pub get
+        working-directory: packages/tvbox_core
+
+      - name: Pub get (native)
+        run: dart pub get
+        working-directory: packages/tvbox_native
 
       - name: Dart analyze
-        run: |
-          dart analyze packages/tvbox_core
-          dart analyze packages/tvbox_native
+        run: dart analyze
+        working-directory: packages/tvbox_core
+
+      - name: Dart analyze (native)
+        run: dart analyze
+        working-directory: packages/tvbox_native
 
       - name: Core unit tests
+        working-directory: packages/tvbox_core
         run: |
           set -o pipefail
-          dart test --directory packages/tvbox_core 2>&1 | tee core-test-log.txt
+          dart test 2>&1 | tee core-test-log.txt
 
       - name: Native tests（libcurl 真实网络 + QuickJS conformance）
+        working-directory: packages/tvbox_native
         env:
           TVBOX_QJS_LIB: ${{ github.workspace }}/native/test-lib/libquickjs_bridge.so
         run: |
           set -o pipefail
-          dart test --directory packages/tvbox_native 2>&1 | tee native-test-log.txt
+          dart test 2>&1 | tee native-test-log.txt
 
       - name: Commit test logs
         if: failure()
